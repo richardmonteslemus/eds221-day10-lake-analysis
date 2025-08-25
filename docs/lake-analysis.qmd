@@ -1,0 +1,104 @@
+---
+title: "Long Term Ice Cover Duration"
+author: "Richard Montes Lemus"
+format: html
+---
+
+```{r, message = FALSE}
+# Load necessary packages 
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(janitor)
+library(here)
+```
+
+```{r, message = FALSE}
+# Read and clean in data 
+mad_met <- read_csv(here("data", "ntl20_v6.csv"), na = c("-999", "")) %>% 
+  clean_names()
+north_lake_data <- read_csv(here("data", "ntl33_v7.csv"), na = c("-999", "")) %>% 
+  clean_names() 
+```
+
+```{r}
+# Lake ice duration visualization
+north_lake_data %>% 
+  ggplot(aes(x = lakeid, y = ice_duration)) +
+  geom_boxplot(outlier.shape = NA) + 
+  geom_jitter() + 
+  coord_flip() + 
+  labs(x = "Lake ID", 
+       y = "Ice Duration (days)", 
+       title = "Ice Duration by Lake")
+```
+
+```{r}
+ice_duration_avg <- north_lake_data %>% 
+  drop_na(ice_duration) %>% 
+  group_by(year4) %>% 
+  summarise(ice_duration_avg = mean(ice_duration, na.rm = TRUE)) %>% 
+  ungroup()
+```
+
+```{r}
+ice_duration_avg %>% 
+  ggplot(aes(x = year4, y = ice_duration_avg)) +
+  geom_line() + 
+  labs(x = "Year", 
+       y = "Ice Duration (days)", 
+       title = "Madison Lake Area Ice Duration by Year") + 
+  theme_classic() + 
+  theme(plot.title = element_text(hjust = 0.45))
+
+```
+Madison Lake data obtained from Long Term Ecological Research (LTER) suggest that average ice duration in the Madison Lake area has been decreasing yearly. 
+
+```{r}
+# Get air temp averages 
+air_temp <- mad_met %>% 
+  drop_na(ave_air_temp_adjusted) %>% 
+  filter(month == c("12", "1", "2")) %>% 
+  group_by(year4) %>% 
+  summarise(air_temp_avg = mean(ave_air_temp_adjusted, na.rm = TRUE)) %>% 
+  ungroup()
+```
+```{r}
+air_temp %>% 
+  ggplot(aes(x = year4, air_temp_avg)) +
+  geom_smooth() + 
+  labs(x = "Year", 
+       y = "Air Temperature Average (c)", 
+       title = "Air Temperature Average by Year")
+```
+
+Madison Lake area data obtained from Long Term Ecological Research (LTER) suggest that average air temperature in the Madison Lake area has been increasing yearly. 
+
+```{r}
+# Join data 
+joined_mad_data <-  air_temp%>% 
+  full_join(ice_duration_avg)
+```
+
+```{r}
+joined_mad_data %>% 
+  ggplot(aes(x = air_temp_avg,
+             y = ice_duration_avg)) + 
+  geom_point() + 
+  labs(x = "Air Temperature Average (c)", 
+       y = "Average Ice Duration (days)", 
+       title = "Madison Lake Area Air Temperature Average vs Average Ice Duration")
+```
+
+Madison Lake Area Data obtained from Long Term Ecological Research suggest that as average air temperature increases, average ice duration decreases.
+
+```{r}
+early_thaw_data <- north_lake_data %>% 
+  filter(year4 <= 1970) %>% 
+  mutate(ice_off_copy =  lubridate::yday(ice_off)) 
+```
+
+
+
+
+
